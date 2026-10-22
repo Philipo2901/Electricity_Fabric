@@ -1,0 +1,51 @@
+# ============================================================
+# Template: deploy-fabric-items.yml
+# Deploys one Fabric "layer" (storage/transform/etc.) to a workspace.
+# Called once per layer from azure-pipelines.yml.
+# ============================================================
+parameters:
+  - name: layerName        # e.g. "storage", "transform" — used in display names
+    type: string
+  - name: workspaceId
+    type: string
+  - name: repoSubfolder     # e.g. "storage" — appended to $(repo_directory)
+    type: string
+  - name: itemsInScope
+    type: string
+  - name: environmentName   # Azure DevOps environment for approvals/history
+    type: string
+    default: "fabric-stable"
+
+jobs:
+  - deployment: Deploy_${{ parameters.layerName }}
+    displayName: "Deploy Fabric items → ${{ parameters.layerName }}"
+    environment: ${{ parameters.environmentName }}
+    pool:
+      vmImage: ubuntu-latest
+    timeoutInMinutes: 30
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+
+            - task: UsePythonVersion@0
+              displayName: "Use Python $(python_version)"
+              inputs:
+                versionSpec: "$(python_version)"
+                addToPath: true
+            - script: |
+                pip install "fabric-cicd==$(fabric_cicd_version)" "azure-identity==$(azure_identity_version)"
+              displayName: "Install fabric-cicd"
+            - pwsh: |
+                python -u "$(Build.SourcesDirectory)/$(deploy_script)" `
+                  --workspace_id   "${{ parameters.workspaceId }}" `
+                  --environment    "stable" `
+                  --repo_directory "$(repo_directory)/${{ parameters.repoSubfolder }}" `
+                  --item_types     '${{ parameters.itemsInScope }}' `
+                  --tenant_id      "$(tenant_id)" `
+                  --client_id      "$(spn_client_id)" `
+                  --client_secret  "$(spn_client_secret)"
+              env:
+                SYSTEM_DEBUG: $(System.Debug)
+              displayName: "Deploy to stable / ${{ parameters.layerName }}"

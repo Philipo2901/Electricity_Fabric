@@ -1,0 +1,150 @@
+table FactSales
+	lineageTag: 9d9dd3b8-4697-4cab-887f-997310f253ea
+	sourceLineageTag: [Sales].[FactSales]
+
+	column SalesOrderDetailID
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: d495fe11-eaa1-42da-a773-a1068a075e13
+		sourceLineageTag: SalesOrderDetailID
+		summarizeBy: count
+		sourceColumn: SalesOrderDetailID
+
+		annotation SummarizationSetBy = Automatic
+
+	column OrderDate
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: c957f3e4-f29f-4aef-8803-ce202f1e90a8
+		sourceLineageTag: OrderDate
+		summarizeBy: none
+		sourceColumn: OrderDate
+
+		annotation SummarizationSetBy = Automatic
+
+	column DueDate
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: b0d65dbc-60c7-44ed-bed4-efadd2f0f96f
+		sourceLineageTag: DueDate
+		summarizeBy: none
+		sourceColumn: DueDate
+
+		annotation SummarizationSetBy = Automatic
+
+	column ShipDate
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: eee4f43c-fd79-416e-9448-5cbc945316ff
+		sourceLineageTag: ShipDate
+		summarizeBy: none
+		sourceColumn: ShipDate
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsOnlineOrder
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		sourceProviderType: bit
+		lineageTag: 6dd5ae2d-14e8-49f2-bb05-5f5f3884c014
+		sourceLineageTag: IsOnlineOrder
+		summarizeBy: none
+		sourceColumn: IsOnlineOrder
+
+		annotation SummarizationSetBy = Automatic
+
+	column OrderQuantity
+		dataType: int64
+		formatString: 0
+		sourceProviderType: smallint
+		lineageTag: 0d6320c1-7d69-4e7c-a7b6-1f5ea350fbb4
+		sourceLineageTag: OrderQuantity
+		summarizeBy: sum
+		sourceColumn: OrderQuantity
+
+		annotation SummarizationSetBy = Automatic
+
+	column UnitPrice
+		dataType: double
+		sourceProviderType: decimal
+		lineageTag: 3a069535-13de-4ec4-b40e-817bc1237cfc
+		sourceLineageTag: UnitPrice
+		summarizeBy: sum
+		sourceColumn: UnitPrice
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column UnitPriceDiscount
+		dataType: double
+		sourceProviderType: decimal
+		lineageTag: 915636d2-63dd-4401-9861-49b5e88c630c
+		sourceLineageTag: UnitPriceDiscount
+		summarizeBy: sum
+		sourceColumn: UnitPriceDiscount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column LineTotal
+		dataType: double
+		sourceProviderType: decimal
+		lineageTag: f5511917-c810-400d-bf52-0718259c93ea
+		sourceLineageTag: LineTotal
+		summarizeBy: sum
+		sourceColumn: LineTotal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column SalesSK
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: 619c40a8-cda6-4197-90be-b8aef3321b2a
+		sourceLineageTag: SalesSK
+		summarizeBy: sum
+		sourceColumn: SalesSK
+
+		annotation SummarizationSetBy = Automatic
+
+	column CustomerSK
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: a248f256-ed80-4f47-a7ce-c07cdc494e20
+		sourceLineageTag: CustomerSK
+		summarizeBy: none
+		sourceColumn: CustomerSK
+
+		annotation SummarizationSetBy = Automatic
+
+	column ProductSK
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: 05ebcc98-8d12-4ef9-b1f8-ad2badf0a47d
+		sourceLineageTag: ProductSK
+		summarizeBy: none
+		sourceColumn: ProductSK
+
+		annotation SummarizationSetBy = Automatic
+
+	partition FactSales-913b4daf-444e-44a0-94c5-4ccebd3a3f75 = entity
+		mode: directLake
+		source
+			entityName: FactSales
+			schemaName: Sales
+			expressionSource: DatabaseQuery
+
+	annotation IsTableInBiModel = True
+
+	annotation PBI_ResultType = Table
+

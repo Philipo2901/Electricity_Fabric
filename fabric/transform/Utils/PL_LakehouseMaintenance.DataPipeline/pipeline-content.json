@@ -1,0 +1,159 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "bcc11825-462f-8079-4533-d3f96d45ae3d",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "lakehouse_name": {
+              "value": "LH_Bronze",
+              "type": "string"
+            },
+            "resource_profile": {
+              "value": null,
+              "type": "string"
+            },
+            "delta_optimize_is_active": {
+              "value": "False",
+              "type": "bool"
+            },
+            "delta_vacuum_is_active": {
+              "value": "False",
+              "type": "bool"
+            },
+            "retention_days_vacuum": {
+              "value": null,
+              "type": "int"
+            },
+            "file_delete_is_active": {
+              "value": "True",
+              "type": "bool"
+            },
+            "retention_days_files": {
+              "value": "730",
+              "type": "int"
+            },
+            "lakehouse_file_subfolder": {
+              "value": "",
+              "type": "string"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "LH_Bronze Maintenance",
+        "description": "Executes the notebook NB_LakehouseMaintenance for LH_Bronze, performing file deletes.",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "bcc11825-462f-8079-4533-d3f96d45ae3d",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "lakehouse_name": {
+              "value": "LH_Silver",
+              "type": "string"
+            },
+            "resource_profile": {
+              "value": "readHeavyForSpark",
+              "type": "string"
+            },
+            "delta_optimize_is_active": {
+              "value": "True",
+              "type": "bool"
+            },
+            "delta_vacuum_is_active": {
+              "value": "True",
+              "type": "bool"
+            },
+            "retention_days_vacuum": {
+              "value": "7",
+              "type": "int"
+            },
+            "file_delete_is_active": {
+              "value": "False",
+              "type": "bool"
+            },
+            "retention_days_files": {
+              "value": null,
+              "type": "int"
+            },
+            "lakehouse_file_subfolder": {
+              "value": "",
+              "type": "string"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "LH_Silver Maintenance",
+        "description": "Executes the notebook NB_LakehouseMaintenance for LH_Silver, performing VACUUM and OPTIMIZE on all tables.",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "bcc11825-462f-8079-4533-d3f96d45ae3d",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "lakehouse_name": {
+              "value": "LH_Gold",
+              "type": "string"
+            },
+            "resource_profile": {
+              "value": "readHeavyForPBI",
+              "type": "string"
+            },
+            "delta_optimize_is_active": {
+              "value": "True",
+              "type": "bool"
+            },
+            "delta_vacuum_is_active": {
+              "value": "True",
+              "type": "bool"
+            },
+            "retention_days_vacuum": {
+              "value": "7",
+              "type": "int"
+            },
+            "file_delete_is_active": {
+              "value": "False",
+              "type": "bool"
+            },
+            "retention_days_files": {
+              "value": null,
+              "type": "int"
+            },
+            "lakehouse_file_subfolder": {
+              "value": "",
+              "type": "string"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "LH_Gold Maintenance",
+        "description": "Executes the notebook NB_LakehouseMaintenance for LH_Gold, performing VACUUM and OPTIMIZE on all tables.",
+        "dependsOn": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+# Create Shortcut to Private ADLS Gen2
+
+## Steps
+
+### 1. Create Fabric Workspace Identity
+Create a workspace identity in Fabric (Fabric WS identity).
+
+**How to:**
+- Navigate to your Fabric workspace
+- Go to Workspace Settings → Security
+- Enable "Workspace identity"
+
+### 2. Add Workspace Identity as Contributor
+Assign the workspace identity the **Contributor** role on the storage account.
+
+**How to:**
+- Go to Azure Portal → Storage Account
+- Navigate to Access Control (IAM)
+- Add role assignment → Contributor
+- Select the Fabric workspace identity
+
+### 3. Run PowerShell Script to Add Network Rule
+
+**Template:**
+```powershell
+az storage account network-rule add `
+  --account-name <STORAGE_ACCOUNT_NAME> `
+  --resource-id "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP_NAME>/providers/Microsoft.Fabric/workspaces/<WS_ID>" `
+  --tenant-id <TENANT_ID>
+```
+
+### 4. Create Shortcut in Fabric
+Once network access is configured:
+- Navigate to your Lakehouse in Fabric
+- Create a new shortcut
+- Select ADLS Gen2 as the source
+- Enter the storage account details
+- The connection should now succeed through the workspace identity
+
+---
+
+## Notes
+- The workspace GUID can be found in the Fabric workspace URL: `https://app.powerbi.com/groups/<WS_ID>/...`
+- Network rules may take a few minutes to propagate
+- Ensure the workspace identity has appropriate permissions on the storage account containers/paths

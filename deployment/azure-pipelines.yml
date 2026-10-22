@@ -1,0 +1,79 @@
+# ============================================================
+# Azure DevOps Pipeline - Microsoft Fabric CI/CD
+# Uses: https://microsoft.github.io/fabric-cicd
+#
+# Flow: push to main → Deploy storage → Deploy transform (stable)
+# ============================================================
+trigger:
+  branches:
+    include:
+      - main
+pr: none
+
+parameters:
+  - name: items_in_scope
+    displayName: "Fabric item types to deploy"
+    type: string
+    default: '["Notebook", "DataPipeline", "Environment", "Lakehouse", "VariableLibrary", "SQLDatabase", "SemanticModel", "Report"]'
+
+variables:
+  - group: obungi-fabric-service-principal
+  - name: python_version
+    value: "3.12"
+  - name: deploy_script
+    value: "deployment/fabric_deploy.py"
+  - name: repo_directory
+    value: "$(System.DefaultWorkingDirectory)/fabric"
+  - name: fabric_cicd_version
+    value: "0.3.1" # pin and bump deliberately; check https://github.com/microsoft/fabric-cicd/blob/main/docs/changelog.md before upgrading — this is still a pre-1.0 preview library with real breaking changes between minor versions
+  - name: azure_identity_version
+    value: "1.25.3"
+
+stages:
+  # ------------------------------------------------------------
+  # STAGE 1 — Deploy storage to stable
+  # ------------------------------------------------------------
+  - stage: Deploy_storage
+    displayName: "Deploy storage → stable"
+    jobs:
+      - template: deploy-fabric-workspace.yml
+        parameters:
+          layerName: "storage"
+          workspaceId: "67690a06-3181-4a4e-92f5-9abef31cdfaf"
+          repoSubfolder: "storage"
+          itemsInScope: '${{ parameters.items_in_scope }}'
+          environmentName: "fabric-stable"
+
+  # ------------------------------------------------------------
+  # STAGE 2 — Deploy transform to stable
+  # (runs after Deploy_storage completes — stages depend on the
+  # prior stage by default, kept explicit here for clarity)
+  # ------------------------------------------------------------
+  - stage: Deploy_transform
+    displayName: "Deploy transform → stable"
+    dependsOn: Deploy_storage
+    jobs:
+      - template: deploy-fabric-workspace.yml
+        parameters:
+          layerName: "transform"
+          workspaceId: "1698f6d2-badf-4a2b-9274-8eb15d11de6a"
+          repoSubfolder: "transform"
+          itemsInScope: '${{ parameters.items_in_scope }}'
+          environmentName: "fabric-stable"
+
+  # ------------------------------------------------------------
+  # STAGE 3 — Deploy serve to stable
+  # (runs after Deploy_transform completes — stages depend on the
+  # prior stage by default, kept explicit here for clarity)
+  # ------------------------------------------------------------
+  - stage: Deploy_serve
+    displayName: "Deploy serve → stable"
+    dependsOn: Deploy_transform
+    jobs:
+      - template: deploy-fabric-workspace.yml
+        parameters:
+          layerName: "serve"
+          workspaceId: "8e44da6d-ed5f-45ef-9dc1-5922ea7868d7"
+          repoSubfolder: "serve"
+          itemsInScope: '${{ parameters.items_in_scope }}'
+          environmentName: "fabric-stable"

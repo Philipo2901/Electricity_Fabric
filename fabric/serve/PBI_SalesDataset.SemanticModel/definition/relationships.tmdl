@@ -1,0 +1,8 @@
+relationship 3de896d5-6005-e389-966a-391e98a63d3e
+	fromColumn: FactSales.ProductSK
+	toColumn: DimProduct.ProductSK
+
+relationship 1366bee4-a8af-14e6-469d-35bafbdaab10
+	fromColumn: FactSales.CustomerSK
+	toColumn: DimCustomer.CustomerSK
+

@@ -1,0 +1,69 @@
+{
+  "config": "{\"version\":\"5.47\",\"themeCollection\":{\"baseTheme\":{\"name\":\"CY23SU08\",\"version\":\"5.47\",\"type\":2}},\"activeSectionIndex\":0,\"defaultDrillFilterOtherVisuals\":true,\"linguisticSchemaSyncVersion\":0,\"settings\":{\"useNewFilterPaneExperience\":true,\"allowChangeFilterTypes\":true,\"useStylableVisualContainerHeader\":true,\"queryLimitOption\":6,\"useEnhancedTooltips\":true,\"exportDataMode\":1,\"useDefaultAggregateDisplayName\":true},\"objects\":{\"section\":[{\"properties\":{\"verticalAlignment\":{\"expr\":{\"Literal\":{\"Value\":\"'Top'\"}}}}}]}}",
+  "layoutOptimization": 0,
+  "resourcePackages": [
+    {
+      "resourcePackage": {
+        "disabled": false,
+        "items": [
+          {
+            "name": "CY23SU08",
+            "path": "BaseThemes/CY23SU08.json",
+            "type": 202
+          }
+        ],
+        "name": "SharedResources",
+        "type": 2
+      }
+    }
+  ],
+  "sections": [
+    {
+      "config": "{}",
+      "displayName": "Customers",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 720.00,
+      "name": "ReportSection",
+      "visualContainers": [
+        {
+          "config": "{\"name\":\"2b5de07a62051986ec0b\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":162.5629290617849,\"z\":0,\"width\":456.9336384439359,\"height\":557.9862700228832,\"tabOrder\":0}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"DimCustomer.Title\"},{\"queryRef\":\"DimCustomer.FirstName\"},{\"queryRef\":\"DimCustomer.LastName\"},{\"queryRef\":\"DimCustomer.CountryRegion\"},{\"queryRef\":\"DimCustomer.City\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"d\",\"Entity\":\"DimCustomer\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"FirstName\"},\"Name\":\"DimCustomer.FirstName\",\"NativeReferenceName\":\"FirstName\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"LastName\"},\"Name\":\"DimCustomer.LastName\",\"NativeReferenceName\":\"LastName\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"City\"},\"Name\":\"DimCustomer.City\",\"NativeReferenceName\":\"City\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"Title\"},\"Name\":\"DimCustomer.Title\",\"NativeReferenceName\":\"Title\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"CountryRegion\"},\"Name\":\"DimCustomer.CountryRegion\",\"NativeReferenceName\":\"Country\"}]},\"columnProperties\":{\"DimCustomer.CountryRegion\":{\"displayName\":\"Country\"}},\"drillFilterOtherVisuals\":true,\"objects\":{\"columnWidth\":[{\"properties\":{\"value\":{\"expr\":{\"Literal\":{\"Value\":\"47.71624750323061D\"}}}},\"selector\":{\"metadata\":\"DimCustomer.Title\"}},{\"properties\":{\"value\":{\"expr\":{\"Literal\":{\"Value\":\"92.9540259935443D\"}}}},\"selector\":{\"metadata\":\"DimCustomer.FirstName\"}},{\"properties\":{\"value\":{\"expr\":{\"Literal\":{\"Value\":\"123.82609213842832D\"}}}},\"selector\":{\"metadata\":\"DimCustomer.City\"}},{\"properties\":{\"value\":{\"expr\":{\"Literal\":{\"Value\":\"132.9610981182603D\"}}}},\"selector\":{\"metadata\":\"DimCustomer.LastName\"}}]}}}",
+          "filters": "[]",
+          "height": 557.99,
+          "width": 456.93,
+          "x": 0.00,
+          "y": 162.56,
+          "z": 0.00
+        },
+        {
+          "config": "{\"name\":\"729d9d450417cbeaa458\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":2000,\"width\":456.9336384439359,\"height\":71.76201372997711,\"tabOrder\":2000}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"DimCustomer.CompanyName\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"d\",\"Entity\":\"DimCustomer\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"CompanyName\"},\"Name\":\"DimCustomer.CompanyName\",\"NativeReferenceName\":\"Company\"}]},\"columnProperties\":{\"DimCustomer.CompanyName\":{\"displayName\":\"Company\"}},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 71.76,
+          "width": 456.93,
+          "x": 0.00,
+          "y": 0.00,
+          "z": 2000.00
+        },
+        {
+          "config": "{\"name\":\"c426ae2c01d472066319\",\"layouts\":[{\"id\":0,\"position\":{\"x\":456.9336384439359,\"y\":0,\"z\":1000,\"width\":823.0663615560641,\"height\":720.5491990846681,\"tabOrder\":1000}}],\"singleVisual\":{\"visualType\":\"map\",\"projections\":{\"Category\":[{\"queryRef\":\"DimCustomer.City\",\"active\":true}],\"Tooltips\":[{\"queryRef\":\"Min(DimCustomer.PostalCode)\"},{\"queryRef\":\"CountNonNull(DimCustomer.AddressLine1)\"}],\"Size\":[{\"queryRef\":\"Sum(DimCustomer.CustomerID)\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"d\",\"Entity\":\"DimCustomer\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"City\"},\"Name\":\"DimCustomer.City\",\"NativeReferenceName\":\"City\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"AddressLine1\"}},\"Function\":3},\"Name\":\"CountNonNull(DimCustomer.AddressLine1)\",\"NativeReferenceName\":\"AddressLine1\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"PostalCode\"}},\"Function\":3},\"Name\":\"Min(DimCustomer.PostalCode)\",\"NativeReferenceName\":\"PostalCode\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"CustomerID\"}},\"Function\":2},\"Name\":\"Sum(DimCustomer.CustomerID)\",\"NativeReferenceName\":\"Count of CustomerID\"}]},\"columnProperties\":{\"CountNonNull(DimCustomer.AddressLine1)\":{\"displayName\":\"AddressLine1\"},\"Min(DimCustomer.PostalCode)\":{\"displayName\":\"PostalCode\"},\"Sum(DimCustomer.CustomerID)\":{\"displayName\":\"Count of Customer\"}},\"drillFilterOtherVisuals\":true,\"objects\":{\"mapControls\":[{\"properties\":{}}],\"categoryLabels\":[{\"properties\":{\"show\":{\"expr\":{\"Literal\":{\"Value\":\"false\"}}}}}],\"dataPoint\":[{\"properties\":{\"showAllDataPoints\":{\"expr\":{\"Literal\":{\"Value\":\"false\"}}}}}]},\"vcObjects\":{\"title\":[{\"properties\":{\"show\":{\"expr\":{\"Literal\":{\"Value\":\"false\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 720.55,
+          "width": 823.07,
+          "x": 456.93,
+          "y": 0.00,
+          "z": 1000.00
+        },
+        {
+          "config": "{\"name\":\"de65c76209011a2c65c3\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":71.76201372997711,\"z\":3000,\"width\":456.9336384439359,\"height\":70.2974828375286,\"tabOrder\":3000}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"DimCustomer.City\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"d\",\"Entity\":\"DimCustomer\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"City\"},\"Name\":\"DimCustomer.City\",\"NativeReferenceName\":\"City\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"general\":[{\"properties\":{\"selfFilterEnabled\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"selfFilter\":{\"filter\":{\"Version\":2,\"From\":[{\"Name\":\"d\",\"Entity\":\"DimCustomer\",\"Type\":0}],\"Where\":[{\"Condition\":{\"Contains\":{\"Left\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"City\"}},\"Right\":{\"Literal\":{\"Value\":\"'london'\"}}}},\"Annotations\":{\"PowerBI.MParameterBehavior\":1}}]}}}}]},\"vcObjects\":{}}}",
+          "filters": "[]",
+          "height": 70.30,
+          "width": 456.93,
+          "x": 0.00,
+          "y": 71.76,
+          "z": 3000.00
+        }
+      ],
+      "width": 1280.00
+    }
+  ]
+}

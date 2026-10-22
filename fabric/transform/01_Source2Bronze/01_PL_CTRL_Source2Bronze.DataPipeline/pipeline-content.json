@@ -1,0 +1,577 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "ForEach",
+        "typeProperties": {
+          "items": {
+            "value": "@activity('LookupImportConfiguration').output.value",
+            "type": "Expression"
+          },
+          "activities": [
+            {
+              "type": "Switch",
+              "typeProperties": {
+                "on": {
+                  "value": "@pipeline().parameters.DataSourceName",
+                  "type": "Expression"
+                },
+                "cases": [
+                  {
+                    "value": "AdventureWorks",
+                    "activities": [
+                      {
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                          "pipeline": {
+                            "referenceName": "5edc1e35-aced-4510-b1db-2700e21ea0e0",
+                            "type": "PipelineReference"
+                          },
+                          "parameters": {
+                            "PathDate": {
+                              "value": "@variables('PathDate')",
+                              "type": "Expression"
+                            },
+                            "DataSourceName": {
+                              "value": "@pipeline().parameters.DataSourceName",
+                              "type": "Expression"
+                            },
+                            "SourceSchema": {
+                              "value": "@item().SourceSchema",
+                              "type": "Expression"
+                            },
+                            "SourceTable": {
+                              "value": "@item().SourceTable",
+                              "type": "Expression"
+                            },
+                            "FileName": {
+                              "value": "@item().FileName",
+                              "type": "Expression"
+                            },
+                            "WatermarkColumn": {
+                              "value": "@item().WatermarkColumn",
+                              "type": "Expression"
+                            },
+                            "WatermarkValue": {
+                              "value": "@item().WatermarkValue",
+                              "type": "Expression"
+                            },
+                            "ImportConfigurationID": {
+                              "value": "@item().ImportConfigurationID",
+                              "type": "Expression"
+                            },
+                            "IsDeltaLoad": {
+                              "value": "@item().IsDeltaLoad",
+                              "type": "Expression"
+                            },
+                            "ParentAuditID": {
+                              "value": "@activity('Create Audit Entry').output.firstRow.AuditID",
+                              "type": "Expression"
+                            },
+                            "ParentPipelineRunId": {
+                              "value": "@pipeline().RunId",
+                              "type": "Expression"
+                            },
+                            "MasterRunId": {
+                              "value": "@pipeline().parameters.MasterRunId",
+                              "type": "Expression"
+                            }
+                          },
+                          "waitOnCompletion": true
+                        },
+                        "policy": {
+                          "secureInput": false
+                        },
+                        "name": "Invoke 01a_PL_AdventureWorks2Bronze",
+                        "dependsOn": []
+                      }
+                    ]
+                  }
+                ],
+                "defaultActivities": []
+              },
+              "name": "Switch DataSource",
+              "dependsOn": []
+            }
+          ]
+        },
+        "name": "ForEachImportConfiguration",
+        "dependsOn": [
+          {
+            "activity": "LookupImportConfiguration",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Create Audit Entry",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "SqlServerSource",
+            "sqlReaderQuery": "SELECT *\nFROM [meta].[vwActiveImportConfiguration]\nWHERE DataSourceName = '@{pipeline().parameters.DataSourceName}'",
+            "partitionOption": "None",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "SqlServerTable",
+            "typeProperties": {
+              "database": {
+                "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                "type": "Expression"
+              }
+            },
+            "schema": [],
+            "externalReferences": {
+              "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+            },
+            "annotations": []
+          },
+          "firstRowOnly": false
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "LookupImportConfiguration",
+        "dependsOn": [
+          {
+            "activity": "Set PathDate",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "PathDate",
+          "value": {
+            "value": "@if(empty(pipeline().parameters.PathDate), formatDateTime(convertTimeZone(utcNow(), 'UTC', 'Central European Standard Time'), 'yyyy-MM-dd HH:mm:ss'), pipeline().parameters.PathDate)",
+            "type": "Expression"
+          }
+        },
+        "policy": {
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Set PathDate",
+        "dependsOn": []
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "SqlServerSource",
+            "sqlReaderStoredProcedureName": "[log].[uspInsertAudit]",
+            "storedProcedureParameters": {
+              "ComponentName": {
+                "type": "String",
+                "value": "Source2Bronze"
+              },
+              "ItemId": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().Pipeline",
+                  "type": "Expression"
+                }
+              },
+              "ItemName": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().PipelineName",
+                  "type": "Expression"
+                }
+              },
+              "ItemType": {
+                "type": "String",
+                "value": "Pipeline"
+              },
+              "MasterRunId": {
+                "type": "String",
+                "value": {
+                  "value": "@if(empty(pipeline().parameters.MasterRunId), pipeline().RunId, pipeline().parameters.MasterRunId)",
+                  "type": "Expression"
+                }
+              },
+              "ParentAuditID": {
+                "type": "Int64",
+                "value": {
+                  "value": "@pipeline().parameters.ParentAuditID",
+                  "type": "Expression"
+                }
+              },
+              "ParentRunId": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().parameters.ParentPipelineRunId",
+                  "type": "Expression"
+                }
+              },
+              "RunId": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().RunId",
+                  "type": "Expression"
+                }
+              },
+              "Sink": {
+                "type": "String",
+                "value": {
+                  "value": "LH_Bronze",
+                  "type": "Expression"
+                }
+              },
+              "SinkType": {
+                "type": "String",
+                "value": null
+              },
+              "Source": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().parameters.DataSourceName",
+                  "type": "Expression"
+                }
+              },
+              "SourceObject": {
+                "type": "String",
+                "value": null
+              },
+              "SourceType": {
+                "type": "String",
+                "value": null
+              },
+              "StartParameter": {
+                "type": "String",
+                "value": {
+                  "value": "DataSourceName: @{pipeline().parameters.DataSourceName}, PathDate: @{variables('PathDate')}",
+                  "type": "Expression"
+                }
+              },
+              "StartTime": {
+                "type": "DateTime",
+                "value": {
+                  "value": "@utcNow()",
+                  "type": "Expression"
+                }
+              },
+              "WorkspaceId": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().DataFactory",
+                  "type": "Expression"
+                }
+              },
+              "WorkspaceName": {
+                "type": "String",
+                "value": {
+                  "value": "@activity('GetWorkspaceName').output.displayName",
+                  "type": "Expression"
+                }
+              }
+            },
+            "partitionOption": "None",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "SqlServerTable",
+            "typeProperties": {
+              "database": {
+                "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                "type": "Expression"
+              }
+            },
+            "schema": [],
+            "externalReferences": {
+              "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+            },
+            "annotations": []
+          },
+          "firstRowOnly": true
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Create Audit Entry",
+        "dependsOn": [
+          {
+            "activity": "GetWorkspaceName",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Fail",
+        "typeProperties": {
+          "message": {
+            "value": "@activity('ForEachImportConfiguration').error.message",
+            "type": "Expression"
+          },
+          "errorCode": {
+            "value": "@activity('ForEachImportConfiguration').error.errorCode",
+            "type": "Expression"
+          }
+        },
+        "name": "RaiseFailure",
+        "dependsOn": [
+          {
+            "activity": "Update Audit Entry on Failure",
+            "dependencyConditions": [
+              "Completed"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "WebActivity",
+        "typeProperties": {
+          "method": "GET",
+          "relativeUrl": {
+            "value": "/workspaces/@{pipeline().DataFactory}",
+            "type": "Expression"
+          },
+          "headers": {}
+        },
+        "externalReferences": {
+          "connection": "800b1f17-445d-42f2-bd15-59288f354af3"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "GetWorkspaceName",
+        "dependsOn": []
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "SqlServerSource",
+            "sqlReaderStoredProcedureName": "[log].[uspUpdateAudit]",
+            "storedProcedureParameters": {
+              "AuditID": {
+                "type": "Int64",
+                "value": {
+                  "value": "@activity('Create Audit Entry').output.firstRow.AuditID",
+                  "type": "Expression"
+                }
+              },
+              "Deletes": {
+                "type": "Int64",
+                "value": null
+              },
+              "EndTime": {
+                "type": "DateTime",
+                "value": {
+                  "value": "@utcNow()",
+                  "type": "Expression"
+                }
+              },
+              "ErrorCode": {
+                "type": "String",
+                "value": null
+              },
+              "ErrorMessage": {
+                "type": "String",
+                "value": null
+              },
+              "FailureType": {
+                "type": "String",
+                "value": null
+              },
+              "Inserts": {
+                "type": "Int64",
+                "value": null
+              },
+              "Updates": {
+                "type": "Int64",
+                "value": null
+              }
+            },
+            "partitionOption": "None",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "SqlServerTable",
+            "typeProperties": {
+              "database": {
+                "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                "type": "Expression"
+              }
+            },
+            "schema": [],
+            "externalReferences": {
+              "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+            },
+            "annotations": []
+          },
+          "firstRowOnly": false
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Update Audit Entry",
+        "dependsOn": [
+          {
+            "activity": "ForEachImportConfiguration",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "SqlServerSource",
+            "sqlReaderStoredProcedureName": "[log].[uspUpdateAudit]",
+            "storedProcedureParameters": {
+              "AuditID": {
+                "type": "Int64",
+                "value": {
+                  "value": "@activity('Create Audit Entry').output.firstRow.AuditID",
+                  "type": "Expression"
+                }
+              },
+              "Deletes": {
+                "type": "Int64",
+                "value": null
+              },
+              "EndTime": {
+                "type": "DateTime",
+                "value": {
+                  "value": "@utcNow()",
+                  "type": "Expression"
+                }
+              },
+              "ErrorCode": {
+                "type": "String",
+                "value": {
+                  "value": "@activity('ForEachImportConfiguration').error.errorCode",
+                  "type": "Expression"
+                }
+              },
+              "ErrorMessage": {
+                "type": "String",
+                "value": {
+                  "value": "@activity('ForEachImportConfiguration').error.message",
+                  "type": "Expression"
+                }
+              },
+              "FailureType": {
+                "type": "String",
+                "value": {
+                  "value": "@activity('ForEachImportConfiguration').error.failureType",
+                  "type": "Expression"
+                }
+              },
+              "Inserts": {
+                "type": "Int64",
+                "value": null
+              },
+              "Updates": {
+                "type": "Int64",
+                "value": null
+              }
+            },
+            "partitionOption": "None",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "SqlServerTable",
+            "typeProperties": {
+              "database": {
+                "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                "type": "Expression"
+              }
+            },
+            "schema": [],
+            "externalReferences": {
+              "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+            },
+            "annotations": []
+          },
+          "firstRowOnly": false
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Update Audit Entry on Failure",
+        "dependsOn": [
+          {
+            "activity": "ForEachImportConfiguration",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "PathDate": {
+        "type": "string"
+      },
+      "DataSourceName": {
+        "type": "string"
+      },
+      "ParentAuditID": {
+        "type": "int"
+      },
+      "ParentPipelineRunId": {
+        "type": "string"
+      },
+      "MasterRunId": {
+        "type": "string"
+      }
+    },
+    "libraryVariables": {
+      "VL_MDB_Connection": {
+        "type": "String",
+        "variableName": "MetadataDatabaseConnection",
+        "libraryName": "Variables_Environment_Config"
+      },
+      "VL_MDB_Name": {
+        "type": "String",
+        "variableName": "MetadataDatabaseName",
+        "libraryName": "Variables_Environment_Config"
+      }
+    },
+    "variables": {
+      "PathDate": {
+        "type": "String"
+      },
+      "MasterRunId": {
+        "type": "String"
+      }
+    }
+  }
+}

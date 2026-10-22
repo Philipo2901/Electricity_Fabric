@@ -1,0 +1,66 @@
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  lineageDocsDir: doc/data-lineage
+  lineageOverviewFile: $(Build.SourcesDirectory)/doc/data-lineage/README.md
+
+steps:
+  - checkout: self
+    persistCredentials: true
+    fetchDepth: 0
+
+  - task: UsePythonVersion@0
+    displayName: Use Python 3.11
+    inputs:
+      versionSpec: '3.11'
+
+  - script: |
+      set -e
+      SOURCE_BRANCH_NAME="${SYSTEM_PULLREQUEST_SOURCEBRANCH#refs/heads/}"
+      git fetch origin "$SOURCE_BRANCH_NAME"
+      git checkout "$SOURCE_BRANCH_NAME"
+    displayName: Checkout PR source branch
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+
+  - script: |
+      python tools/generate_silver_gold_lineage.py \
+        --notebooks-root fabric/03_Silver2Gold \
+        --output-dir "$(lineageDocsDir)"
+    displayName: Generate Silver-to-Gold lineage markdown
+
+  - script: |
+      set -e
+      ls -la "$(Build.SourcesDirectory)/doc/data-lineage"
+      test -f "$(lineageOverviewFile)"
+      echo "##vso[task.uploadsummary]$(lineageOverviewFile)"
+    displayName: Publish lineage as pipeline summary
+
+  - script: |
+      set -e
+      if [ -n "$(git status --porcelain $(lineageDocsDir))" ]; then
+        if [ "$(Build.Reason)" = "PullRequest" ]; then
+          TARGET_BRANCH_REF="$SYSTEM_PULLREQUEST_SOURCEBRANCH"
+        else
+          TARGET_BRANCH_REF="$BUILD_SOURCEBRANCH"
+        fi
+
+        git config user.email "azuredevops@obungi.local"
+        git config user.name "Azure DevOps"
+        git add $(lineageDocsDir)
+        git commit -m "chore: update lineage docs [skip ci]"
+        git push origin HEAD:"$TARGET_BRANCH_REF"
+      else
+        echo "No lineage doc changes detected."
+      fi
+    displayName: Commit and push lineage docs to branch
+    condition: succeeded()
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish lineage markdown artifact
+    inputs:
+      PathtoPublish: '$(lineageDocsDir)'
+      ArtifactName: 'DataLineage'
+      publishLocation: 'Container'
