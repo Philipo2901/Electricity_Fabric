@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataPipeline",
+    "displayName": "01_PL_COPY_AdventureWorks2Bronze"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "5edc1e35-aced-4510-b1db-2700e21ea0e0"
+  }
+}
