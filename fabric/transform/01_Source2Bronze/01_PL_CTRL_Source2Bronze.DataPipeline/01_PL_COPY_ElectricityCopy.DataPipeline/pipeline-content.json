@@ -1,0 +1,1071 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "name": "Full or Delta",
+        "type": "Switch",
+        "dependsOn": [
+          {
+            "activity": "GetWorkspaceName",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "on": {
+            "value": "@{\n    if(\n        pipeline().parameters.IsDeltaLoad,\n        'Delta',\n        'Full'\n    )\n}",
+            "type": "Expression"
+          },
+          "cases": [
+            {
+              "value": "Delta",
+              "activities": [
+                {
+                  "name": "CopyIntoBronze - Delta",
+                  "type": "Copy",
+                  "dependsOn": [
+                    {
+                      "activity": "LookupMaxWatermarkValue",
+                      "dependencyConditions": [
+                        "Succeeded"
+                      ]
+                    },
+                    {
+                      "activity": "Create Audit Entry Copy Data - Delta",
+                      "dependencyConditions": [
+                        "Succeeded"
+                      ]
+                    }
+                  ],
+                  "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                  },
+                  "typeProperties": {
+                    "source": {
+                      "type": "AzureSqlSource",
+                      "sqlReaderQuery": {
+                        "value": "@concat(\n    if(\n        empty(pipeline().parameters.SourceQuery),\n        concat(\n            'SELECT * FROM ',\n            pipeline().parameters.SourceSchema,\n            '.',\n            pipeline().parameters.SourceTable\n        ),\n        pipeline().parameters.SourceQuery\n    ),\n    if(\n        contains(\n            pipeline().parameters.SourceQuery,\n            'WHERE'\n        ),\n        ' AND ',\n        ' WHERE '\n    ),\n    pipeline().parameters.WatermarkColumn, \n    ' > ',\n    pipeline().parameters.WatermarkValue,\n    ' AND ',\n    pipeline().parameters.WatermarkColumn,\n    ' <= ',\n    activity('LookupMaxWatermarkValue').output.firstRow.MaxWatermarkValue\n)",
+                        "type": "Expression"
+                      },
+                      "partitionOption": "None",
+                      "datasetSettings": {
+                        "annotations": [],
+                        "type": "AzureSqlTable",
+                        "schema": [],
+                        "typeProperties": {
+                          "schema": {
+                            "value": "@item().SourceSchema",
+                            "type": "Expression"
+                          },
+                          "table": {
+                            "value": "@item().SourceTable",
+                            "type": "Expression"
+                          },
+                          "database": "pscp-sqldb-aw-dev"
+                        },
+                        "externalReferences": {
+                          "connection": "84467ce0-0e6b-426f-86c6-f5c188f95738"
+                        }
+                      }
+                    },
+                    "sink": {
+                      "type": "ParquetSink",
+                      "storeSettings": {
+                        "type": "AzureBlobStorageWriteSettings"
+                      },
+                      "formatSettings": {
+                        "type": "ParquetWriteSettings",
+                        "enableVertiParquet": true
+                      },
+                      "datasetSettings": {
+                        "annotations": [],
+                        "linkedService": {
+                          "name": "LH_Bronze",
+                          "properties": {
+                            "annotations": [],
+                            "type": "Lakehouse",
+                            "typeProperties": {
+                              "workspaceId": "1cfeab7c-4df3-48cb-8407-c31a3bb8a7e5",
+                              "artifactId": "f5df3ca3-6568-4c3b-80e3-6f4ceb6a2d6f",
+                              "rootFolder": "Files"
+                            }
+                          }
+                        },
+                        "type": "Parquet",
+                        "typeProperties": {
+                          "location": {
+                            "type": "LakehouseLocation",
+                            "fileName": {
+                              "value": "@{pipeline().parameters.FileName}_@{formatDateTime(pipeline().parameters.PathDate,'yyyy-MM-ddTHH-mm-ss')}.parquet",
+                              "type": "Expression"
+                            },
+                            "folderPath": {
+                              "value": "@concat(pipeline().parameters.DataSourceName\n    ,'/', pipeline().parameters.SourceSchema, pipeline().parameters.SourceTable\n    ,'/Delta'\n    ,'/Year=',formatDateTime(pipeline().parameters.PathDate,'yyyy')\n    ,'/Month=',formatDateTime(pipeline().parameters.PathDate,'MM')\n    ,'/Day=',formatDateTime(pipeline().parameters.PathDate,'dd')\n    ,'/Hour=',formatDateTime(pipeline().parameters.PathDate, 'HH')\n    ,'/Minute=',formatDateTime(pipeline().parameters.PathDate, 'mm')\n    )",
+                              "type": "Expression"
+                            }
+                          },
+                          "compressionCodec": "snappy"
+                        },
+                        "schema": []
+                      }
+                    },
+                    "enableStaging": false,
+                    "translator": {
+                      "type": "TabularTranslator",
+                      "typeConversion": true,
+                      "typeConversionSettings": {
+                        "allowDataTruncation": true,
+                        "treatBooleanAsNumber": false
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "LookupMaxWatermarkValue",
+                  "type": "Lookup",
+                  "dependsOn": [],
+                  "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                  },
+                  "typeProperties": {
+                    "source": {
+                      "type": "AzureSqlSource",
+                      "sqlReaderQuery": {
+                        "value": "SELECT MAX(@{pipeline().parameters.WatermarkColumn}) AS [MaxWatermarkValue]\nFROM @{pipeline().parameters.SourceSchema}.@{pipeline().parameters.SourceTable}",
+                        "type": "Expression"
+                      },
+                      "queryTimeout": "02:00:00",
+                      "partitionOption": "None"
+                    },
+                    "datasetSettings": {
+                      "annotations": [],
+                      "type": "AzureSqlTable",
+                      "schema": [],
+                      "typeProperties": {},
+                      "externalReferences": {
+                        "connection": "656cfc16-29da-43e7-b608-059e912bbf92"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "RaiseFailure - Delta",
+                  "type": "Fail",
+                  "dependsOn": [
+                    {
+                      "activity": "Update Audit Entry Copy Data on Failure - Delta",
+                      "dependencyConditions": [
+                        "Completed"
+                      ]
+                    }
+                  ],
+                  "typeProperties": {
+                    "message": {
+                      "value": "@activity('CopyIntoBronze - Delta').error.message",
+                      "type": "Expression"
+                    },
+                    "errorCode": {
+                      "value": "@activity('CopyIntoBronze - Delta').error.errorCode",
+                      "type": "Expression"
+                    }
+                  }
+                },
+                {
+                  "name": "Create Audit Entry Copy Data - Delta",
+                  "type": "Lookup",
+                  "dependsOn": [],
+                  "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                  },
+                  "typeProperties": {
+                    "source": {
+                      "type": "SqlServerSource",
+                      "sqlReaderStoredProcedureName": "[log].[uspInsertAudit]",
+                      "storedProcedureParameters": {
+                        "ComponentName": {
+                          "type": "String",
+                          "value": "Source2Bronze"
+                        },
+                        "ItemId": {
+                          "type": "String",
+                          "value": {
+                            "value": "@pipeline().Pipeline",
+                            "type": "Expression"
+                          }
+                        },
+                        "ItemName": {
+                          "type": "String",
+                          "value": {
+                            "value": "@pipeline().PipelineName",
+                            "type": "Expression"
+                          }
+                        },
+                        "ItemType": {
+                          "type": "String",
+                          "value": "Pipeline"
+                        },
+                        "MasterRunId": {
+                          "type": "String",
+                          "value": {
+                            "value": "@if(empty(pipeline().parameters.MasterRunId), pipeline().RunId, pipeline().parameters.MasterRunId)",
+                            "type": "Expression"
+                          }
+                        },
+                        "ParentAuditID": {
+                          "type": "Int64",
+                          "value": {
+                            "value": "@pipeline().parameters.ParentAuditID",
+                            "type": "Expression"
+                          }
+                        },
+                        "ParentRunId": {
+                          "type": "String",
+                          "value": {
+                            "value": "@pipeline().parameters.ParentPipelineRunId",
+                            "type": "Expression"
+                          }
+                        },
+                        "RunId": {
+                          "type": "String",
+                          "value": {
+                            "value": "@pipeline().RunId",
+                            "type": "Expression"
+                          }
+                        },
+                        "Sink": {
+                          "type": "String",
+                          "value": {
+                            "value": "@concat(pipeline().parameters.DataSourceName,'/', \n        pipeline().parameters.SourceTable,'/',\n        if(pipeline().parameters.IsDeltaLoad, 'Delta', 'Full'),\n        '/Year=',substring(pipeline().parameters.PathDate, 0, 4),\n        '/Month=',substring(pipeline().parameters.PathDate, 5, 2),\n        '/Day=',substring(pipeline().parameters.PathDate, 8, 2) \n)",
+                            "type": "Expression"
+                          }
+                        },
+                        "SinkType": {
+                          "type": "String",
+                          "value": "Lakehouse"
+                        },
+                        "Source": {
+                          "type": "String",
+                          "value": {
+                            "value": "@concat(pipeline().parameters.DataSourceName,'.', pipeline().parameters.SourceSchema, '.',pipeline().parameters.SourceTable)",
+                            "type": "Expression"
+                          }
+                        },
+                        "SourceObject": {
+                          "type": "String",
+                          "value": {
+                            "value": "@pipeline().parameters.DataSourceName",
+                            "type": "Expression"
+                          }
+                        },
+                        "SourceType": {
+                          "type": "String",
+                          "value": "Azure SQL DB"
+                        },
+                        "StartParameter": {
+                          "type": "String",
+                          "value": {
+                            "value": "ImportConfigurationID: @{pipeline().parameters.ImportConfigurationID}, PathDate: @{pipeline().parameters.PathDate}, IsDeltaLoad: @{pipeline().parameters.IsDeltaLoad}, WatermarkColumn: @{pipeline().parameters.WatermarkColumn}, WatermarkValue: @{pipeline().parameters.WatermarkValue}",
+                            "type": "Expression"
+                          }
+                        },
+                        "StartTime": {
+                          "type": "DateTime",
+                          "value": {
+                            "value": "@utcNow()",
+                            "type": "Expression"
+                          }
+                        },
+                        "WorkspaceId": {
+                          "type": "String",
+                          "value": {
+                            "value": "@pipeline().DataFactory",
+                            "type": "Expression"
+                          }
+                        },
+                        "WorkspaceName": {
+                          "type": "String",
+                          "value": {
+                            "value": "@activity('GetWorkspaceName').output.displayName",
+                            "type": "Expression"
+                          }
+                        }
+                      },
+                      "queryTimeout": "02:00:00",
+                      "partitionOption": "None"
+                    },
+                    "datasetSettings": {
+                      "annotations": [],
+                      "type": "SqlServerTable",
+                      "schema": [],
+                      "typeProperties": {
+                        "database": "DB_Metadata-b2efd793-9429-49c3-a8b2-e169b987f4a9"
+                      },
+                      "externalReferences": {
+                        "connection": "5a2283ef-8a8c-4488-9e2f-4863831eb059"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "Update Audit Entry Copy Data - Delta",
+                  "type": "Lookup",
+                  "dependsOn": [
+                    {
+                      "activity": "CopyIntoBronze - Delta",
+                      "dependencyConditions": [
+                        "Succeeded"
+                      ]
+                    }
+                  ],
+                  "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                  },
+                  "typeProperties": {
+                    "source": {
+                      "type": "SqlServerSource",
+                      "sqlReaderStoredProcedureName": "[log].[uspUpdateAudit]",
+                      "storedProcedureParameters": {
+                        "AuditID": {
+                          "type": "Int64",
+                          "value": {
+                            "value": "@activity('Create Audit Entry Copy Data - Delta').output.firstRow.AuditID",
+                            "type": "Expression"
+                          }
+                        },
+                        "Deletes": {
+                          "type": "Int64",
+                          "value": "0"
+                        },
+                        "EndTime": {
+                          "type": "DateTime",
+                          "value": {
+                            "value": "@utcNow()",
+                            "type": "Expression"
+                          }
+                        },
+                        "ErrorCode": {
+                          "type": "String",
+                          "value": null
+                        },
+                        "ErrorMessage": {
+                          "type": "String",
+                          "value": null
+                        },
+                        "FailureType": {
+                          "type": "String",
+                          "value": null
+                        },
+                        "Inserts": {
+                          "type": "Int64",
+                          "value": {
+                            "value": "@activity('CopyIntoBronze - Delta').output.rowsRead",
+                            "type": "Expression"
+                          }
+                        },
+                        "Updates": {
+                          "type": "Int64",
+                          "value": "0"
+                        }
+                      },
+                      "queryTimeout": "02:00:00",
+                      "partitionOption": "None"
+                    },
+                    "datasetSettings": {
+                      "annotations": [],
+                      "type": "SqlServerTable",
+                      "schema": [],
+                      "typeProperties": {
+                        "database": {
+                          "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                          "type": "Expression"
+                        }
+                      },
+                      "externalReferences": {
+                        "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "Update Audit Entry Copy Data on Failure - Delta",
+                  "type": "Lookup",
+                  "dependsOn": [
+                    {
+                      "activity": "CopyIntoBronze - Delta",
+                      "dependencyConditions": [
+                        "Failed"
+                      ]
+                    }
+                  ],
+                  "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                  },
+                  "typeProperties": {
+                    "source": {
+                      "type": "SqlServerSource",
+                      "sqlReaderStoredProcedureName": "[log].[uspUpdateAudit]",
+                      "storedProcedureParameters": {
+                        "AuditID": {
+                          "type": "Int64",
+                          "value": {
+                            "value": "@activity('Create Audit Entry Copy Data - Delta').output.firstRow.AuditID",
+                            "type": "Expression"
+                          }
+                        },
+                        "Deletes": {
+                          "type": "Int64",
+                          "value": "0"
+                        },
+                        "EndTime": {
+                          "type": "DateTime",
+                          "value": {
+                            "value": "@utcNow()",
+                            "type": "Expression"
+                          }
+                        },
+                        "ErrorCode": {
+                          "type": "String",
+                          "value": {
+                            "value": "@activity('CopyIntoBronze - Delta').error.errorCode",
+                            "type": "Expression"
+                          }
+                        },
+                        "ErrorMessage": {
+                          "type": "String",
+                          "value": {
+                            "value": "@activity('CopyIntoBronze - Delta').error.message",
+                            "type": "Expression"
+                          }
+                        },
+                        "FailureType": {
+                          "type": "String",
+                          "value": {
+                            "value": "@activity('CopyIntoBronze - Delta').error.failureType",
+                            "type": "Expression"
+                          }
+                        },
+                        "Inserts": {
+                          "type": "Int64",
+                          "value": "0"
+                        },
+                        "Updates": {
+                          "type": "Int64",
+                          "value": "0"
+                        }
+                      },
+                      "queryTimeout": "02:00:00",
+                      "partitionOption": "None"
+                    },
+                    "datasetSettings": {
+                      "annotations": [],
+                      "type": "SqlServerTable",
+                      "schema": [],
+                      "typeProperties": {
+                        "database": "DB_Metadata-b2efd793-9429-49c3-a8b2-e169b987f4a9"
+                      },
+                      "externalReferences": {
+                        "connection": "5a2283ef-8a8c-4488-9e2f-4863831eb059"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "Update Watermark Value",
+                  "type": "Lookup",
+                  "dependsOn": [
+                    {
+                      "activity": "CopyIntoBronze - Delta",
+                      "dependencyConditions": [
+                        "Succeeded"
+                      ]
+                    }
+                  ],
+                  "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                  },
+                  "typeProperties": {
+                    "source": {
+                      "type": "SqlServerSource",
+                      "sqlReaderStoredProcedureName": "[meta].[uspUpdateWatermarkValue]",
+                      "storedProcedureParameters": {
+                        "ImportConfigurationID": {
+                          "type": "Int32",
+                          "value": {
+                            "value": "@pipeline().parameters.ImportConfigurationID",
+                            "type": "Expression"
+                          }
+                        },
+                        "WatermarkValue": {
+                          "type": "String",
+                          "value": {
+                            "value": "@activity('LookupMaxWatermarkValue').output.firstRow.MaxWatermarkValue",
+                            "type": "Expression"
+                          }
+                        }
+                      },
+                      "queryTimeout": "02:00:00",
+                      "partitionOption": "None"
+                    },
+                    "datasetSettings": {
+                      "annotations": [],
+                      "type": "SqlServerTable",
+                      "schema": [],
+                      "typeProperties": {
+                        "database": "DB_Metadata-b2efd793-9429-49c3-a8b2-e169b987f4a9"
+                      },
+                      "externalReferences": {
+                        "connection": "5a2283ef-8a8c-4488-9e2f-4863831eb059"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "defaultActivities": [
+            {
+              "name": "CopyIntoBronze - Full",
+              "type": "Copy",
+              "dependsOn": [
+                {
+                  "activity": "Create Audit Entry Copy Data",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "typeProperties": {
+                "source": {
+                  "type": "AzureSqlSource",
+                  "sqlReaderQuery": {
+                    "value": "@if(\n    empty(pipeline().parameters.SourceQuery),\n    concat(\n        'SELECT * FROM ',\n        pipeline().parameters.SourceSchema,\n        '.',\n        pipeline().parameters.SourceTable\n    ),\n    pipeline().parameters.SourceQuery\n)",
+                    "type": "Expression"
+                  },
+                  "partitionOption": "None",
+                  "datasetSettings": {
+                    "annotations": [],
+                    "type": "AzureSqlTable",
+                    "schema": [],
+                    "typeProperties": {
+                      "schema": {
+                        "value": "@pipeline().parameters.SourceSchema",
+                        "type": "Expression"
+                      },
+                      "table": {
+                        "value": "@pipeline().parameters.SourceTable",
+                        "type": "Expression"
+                      },
+                      "database": "pscp-sqldb-aw-dev"
+                    },
+                    "externalReferences": {
+                      "connection": "84467ce0-0e6b-426f-86c6-f5c188f95738"
+                    }
+                  }
+                },
+                "sink": {
+                  "type": "ParquetSink",
+                  "storeSettings": {
+                    "type": "AzureBlobStorageWriteSettings"
+                  },
+                  "formatSettings": {
+                    "type": "ParquetWriteSettings",
+                    "enableVertiParquet": true
+                  },
+                  "datasetSettings": {
+                    "annotations": [],
+                    "linkedService": {
+                      "name": "LH_Bronze",
+                      "properties": {
+                        "annotations": [],
+                        "type": "Lakehouse",
+                        "typeProperties": {
+                          "workspaceId": "1cfeab7c-4df3-48cb-8407-c31a3bb8a7e5",
+                          "artifactId": "f5df3ca3-6568-4c3b-80e3-6f4ceb6a2d6f",
+                          "rootFolder": "Files"
+                        }
+                      }
+                    },
+                    "type": "Parquet",
+                    "typeProperties": {
+                      "location": {
+                        "type": "LakehouseLocation",
+                        "fileName": {
+                          "value": "@{pipeline().parameters.FileName}_@{formatDateTime(pipeline().parameters.PathDate,'yyyy-MM-ddTHH-mm-ss')}.parquet",
+                          "type": "Expression"
+                        },
+                        "folderPath": {
+                          "value": "@concat(pipeline().parameters.DataSourceName\n    ,'/', pipeline().parameters.SourceSchema, pipeline().parameters.SourceTable\n    ,'/Full'\n    ,'/Year=',formatDateTime(pipeline().parameters.PathDate,'yyyy')\n    ,'/Month=',formatDateTime(pipeline().parameters.PathDate,'MM')\n    ,'/Day=',formatDateTime(pipeline().parameters.PathDate,'dd')\n    ,'/Hour=',formatDateTime(pipeline().parameters.PathDate,'HH')\n    ,'/Minute=',formatDateTime(pipeline().parameters.PathDate,'mm')\n    )",
+                          "type": "Expression"
+                        }
+                      },
+                      "compressionCodec": "snappy"
+                    },
+                    "schema": []
+                  }
+                },
+                "enableStaging": false,
+                "translator": {
+                  "type": "TabularTranslator",
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowDataTruncation": true,
+                    "treatBooleanAsNumber": false
+                  }
+                }
+              }
+            },
+            {
+              "name": "RaiseFailure - Full",
+              "type": "Fail",
+              "dependsOn": [
+                {
+                  "activity": "Update Audit Entry Copy Data on Failure",
+                  "dependencyConditions": [
+                    "Completed"
+                  ]
+                }
+              ],
+              "typeProperties": {
+                "message": {
+                  "value": "@activity('CopyIntoBronze - Full').error.message",
+                  "type": "Expression"
+                },
+                "errorCode": {
+                  "value": "@activity('CopyIntoBronze - Full').error.errorCode",
+                  "type": "Expression"
+                }
+              }
+            },
+            {
+              "name": "Create Audit Entry Copy Data",
+              "type": "Lookup",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "typeProperties": {
+                "source": {
+                  "type": "SqlServerSource",
+                  "sqlReaderStoredProcedureName": "[log].[uspInsertAudit]",
+                  "storedProcedureParameters": {
+                    "ComponentName": {
+                      "type": "String",
+                      "value": "Source2Bronze"
+                    },
+                    "ItemId": {
+                      "type": "String",
+                      "value": {
+                        "value": "@pipeline().Pipeline",
+                        "type": "Expression"
+                      }
+                    },
+                    "ItemName": {
+                      "type": "String",
+                      "value": {
+                        "value": "@pipeline().PipelineName",
+                        "type": "Expression"
+                      }
+                    },
+                    "ItemType": {
+                      "type": "String",
+                      "value": "Pipeline"
+                    },
+                    "MasterRunId": {
+                      "type": "String",
+                      "value": {
+                        "value": "@if(empty(pipeline().parameters.MasterRunId), pipeline().RunId, pipeline().parameters.MasterRunId)",
+                        "type": "Expression"
+                      }
+                    },
+                    "ParentAuditID": {
+                      "type": "Int64",
+                      "value": {
+                        "value": "@pipeline().parameters.ParentAuditID",
+                        "type": "Expression"
+                      }
+                    },
+                    "ParentRunId": {
+                      "type": "String",
+                      "value": {
+                        "value": "@pipeline().parameters.ParentPipelineRunId",
+                        "type": "Expression"
+                      }
+                    },
+                    "RunId": {
+                      "type": "String",
+                      "value": {
+                        "value": "@pipeline().RunId",
+                        "type": "Expression"
+                      }
+                    },
+                    "Sink": {
+                      "type": "String",
+                      "value": {
+                        "value": "@concat('LH_Bronze/',\n        pipeline().parameters.DataSourceName,'/', \n        pipeline().parameters.SourceTable,'/',\n        if(pipeline().parameters.IsDeltaLoad, 'Delta', 'Full'),\n        '/Year=',substring(pipeline().parameters.PathDate, 0, 4),\n        '/Month=',substring(pipeline().parameters.PathDate, 5, 2),\n        '/Day=',substring(pipeline().parameters.PathDate, 8, 2) \n)",
+                        "type": "Expression"
+                      }
+                    },
+                    "SinkType": {
+                      "type": "String",
+                      "value": "Lakehouse"
+                    },
+                    "Source": {
+                      "type": "String",
+                      "value": {
+                        "value": "@pipeline().parameters.DataSourceName",
+                        "type": "Expression"
+                      }
+                    },
+                    "SourceObject": {
+                      "type": "String",
+                      "value": {
+                        "value": "@concat(pipeline().parameters.SourceSchema, '.',pipeline().parameters.SourceTable)",
+                        "type": "Expression"
+                      }
+                    },
+                    "SourceType": {
+                      "type": "String",
+                      "value": "Azure SQL DB"
+                    },
+                    "StartParameter": {
+                      "type": "String",
+                      "value": {
+                        "value": "ImportConfigurationID: @{pipeline().parameters.ImportConfigurationID}, PathDate: @{pipeline().parameters.PathDate}, IsDeltaLoad: @{pipeline().parameters.IsDeltaLoad}, WatermarkColumn: @{pipeline().parameters.WatermarkColumn}, WatermarkValue: @{pipeline().parameters.WatermarkValue}",
+                        "type": "Expression"
+                      }
+                    },
+                    "StartTime": {
+                      "type": "DateTime",
+                      "value": {
+                        "value": "@utcNow()",
+                        "type": "Expression"
+                      }
+                    },
+                    "WorkspaceId": {
+                      "type": "String",
+                      "value": {
+                        "value": "@pipeline().DataFactory",
+                        "type": "Expression"
+                      }
+                    },
+                    "WorkspaceName": {
+                      "type": "String",
+                      "value": {
+                        "value": "@activity('GetWorkspaceName').output.displayName",
+                        "type": "Expression"
+                      }
+                    }
+                  },
+                  "queryTimeout": "02:00:00",
+                  "partitionOption": "None"
+                },
+                "datasetSettings": {
+                  "annotations": [],
+                  "type": "SqlServerTable",
+                  "schema": [],
+                  "typeProperties": {
+                    "database": {
+                      "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                      "type": "Expression"
+                    }
+                  },
+                  "externalReferences": {
+                    "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+                  }
+                }
+              }
+            },
+            {
+              "name": "Update Audit Entry Copy Data on Failure",
+              "type": "Lookup",
+              "dependsOn": [
+                {
+                  "activity": "CopyIntoBronze - Full",
+                  "dependencyConditions": [
+                    "Failed"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "typeProperties": {
+                "source": {
+                  "type": "SqlServerSource",
+                  "sqlReaderStoredProcedureName": "[log].[uspUpdateAudit]",
+                  "storedProcedureParameters": {
+                    "AuditID": {
+                      "type": "Int64",
+                      "value": {
+                        "value": "@activity('Create Audit Entry Copy Data').output.firstRow.AuditID",
+                        "type": "Expression"
+                      }
+                    },
+                    "Deletes": {
+                      "type": "Int64",
+                      "value": "0"
+                    },
+                    "EndTime": {
+                      "type": "DateTime",
+                      "value": {
+                        "value": "@utcNow()",
+                        "type": "Expression"
+                      }
+                    },
+                    "ErrorCode": {
+                      "type": "String",
+                      "value": {
+                        "value": "@activity('CopyIntoBronze - Full').error.errorCode",
+                        "type": "Expression"
+                      }
+                    },
+                    "ErrorMessage": {
+                      "type": "String",
+                      "value": {
+                        "value": "@activity('CopyIntoBronze - Full').error.message",
+                        "type": "Expression"
+                      }
+                    },
+                    "FailureType": {
+                      "type": "String",
+                      "value": {
+                        "value": "@activity('CopyIntoBronze - Full').error.failureType",
+                        "type": "Expression"
+                      }
+                    },
+                    "Inserts": {
+                      "type": "Int64",
+                      "value": "0"
+                    },
+                    "Updates": {
+                      "type": "Int64",
+                      "value": "0"
+                    }
+                  },
+                  "queryTimeout": "02:00:00",
+                  "partitionOption": "None"
+                },
+                "datasetSettings": {
+                  "annotations": [],
+                  "type": "SqlServerTable",
+                  "schema": [],
+                  "typeProperties": {
+                    "database": {
+                      "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                      "type": "Expression"
+                    }
+                  },
+                  "externalReferences": {
+                    "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+                  }
+                }
+              }
+            },
+            {
+              "name": "Update Audit Entry Copy Data",
+              "type": "Lookup",
+              "dependsOn": [
+                {
+                  "activity": "CopyIntoBronze - Full",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "typeProperties": {
+                "source": {
+                  "type": "SqlServerSource",
+                  "sqlReaderStoredProcedureName": "[log].[uspUpdateAudit]",
+                  "storedProcedureParameters": {
+                    "AuditID": {
+                      "type": "Int64",
+                      "value": {
+                        "value": "@activity('Create Audit Entry Copy Data').output.firstRow.AuditID",
+                        "type": "Expression"
+                      }
+                    },
+                    "Deletes": {
+                      "type": "Int64",
+                      "value": "0"
+                    },
+                    "EndTime": {
+                      "type": "DateTime",
+                      "value": {
+                        "value": "@utcNow()",
+                        "type": "Expression"
+                      }
+                    },
+                    "ErrorCode": {
+                      "type": "String",
+                      "value": null
+                    },
+                    "ErrorMessage": {
+                      "type": "String",
+                      "value": null
+                    },
+                    "FailureType": {
+                      "type": "String",
+                      "value": null
+                    },
+                    "Inserts": {
+                      "type": "Int64",
+                      "value": {
+                        "value": "@activity('CopyIntoBronze - Full').output.rowsRead",
+                        "type": "Expression"
+                      }
+                    },
+                    "Updates": {
+                      "type": "Int64",
+                      "value": "0"
+                    }
+                  },
+                  "queryTimeout": "02:00:00",
+                  "partitionOption": "None"
+                },
+                "datasetSettings": {
+                  "annotations": [],
+                  "type": "SqlServerTable",
+                  "schema": [],
+                  "typeProperties": {
+                    "database": "DB_Metadata-b2efd793-9429-49c3-a8b2-e169b987f4a9"
+                  },
+                  "externalReferences": {
+                    "connection": "5a2283ef-8a8c-4488-9e2f-4863831eb059"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "GetWorkspaceName",
+        "type": "WebActivity",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "method": "GET",
+          "headers": {},
+          "relativeUrl": {
+            "value": "/workspaces/@{pipeline().DataFactory}",
+            "type": "Expression"
+          }
+        },
+        "externalReferences": {
+          "connection": "800b1f17-445d-42f2-bd15-59288f354af3"
+        }
+      }
+    ],
+    "parameters": {
+      "PathDate": {
+        "type": "string"
+      },
+      "DataSourceName": {
+        "type": "string"
+      },
+      "SourceSchema": {
+        "type": "string"
+      },
+      "SourceTable": {
+        "type": "string"
+      },
+      "FileName": {
+        "type": "string"
+      },
+      "WatermarkColumn": {
+        "type": "string"
+      },
+      "WatermarkValue": {
+        "type": "string"
+      },
+      "ImportConfigurationID": {
+        "type": "int"
+      },
+      "IsDeltaLoad": {
+        "type": "bool"
+      },
+      "ParentAuditID": {
+        "type": "int"
+      },
+      "ParentPipelineRunId": {
+        "type": "string"
+      },
+      "MasterRunId": {
+        "type": "string"
+      },
+      "SourceQuery": {
+        "type": "string"
+      }
+    },
+    "variables": {
+      "PathDate": {
+        "type": "String"
+      }
+    },
+    "libraryVariables": {
+      "VL_MDB_Connection": {
+        "type": "String",
+        "variableName": "MetadataDatabaseConnection",
+        "libraryName": "Variables_Environment_Config"
+      },
+      "VL_MDB_Name": {
+        "type": "String",
+        "variableName": "MetadataDatabaseName",
+        "libraryName": "Variables_Environment_Config"
+      }
+    }
+  }
+}
