@@ -1,0 +1,695 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "PathDate",
+          "value": {
+            "value": "@if(empty(pipeline().parameters.PathDate), formatDateTime(convertTimeZone(utcNow(), 'UTC', 'Central European Standard Time'), 'yyyy-MM-dd HH:mm:ss'), pipeline().parameters.PathDate)",
+            "type": "Expression"
+          }
+        },
+        "policy": {
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Set PathDate",
+        "dependsOn": []
+      },
+      {
+        "type": "Office365Outlook",
+        "typeProperties": {
+          "inputs": {
+            "body": {
+              "To": "leonhard.hellmons@obungi.com",
+              "Subject": "@{activity('GetWorkspaceName').output.displayName} - @{pipeline().PipelineName} Failure",
+              "Body": "<p>Parameter</p>\n<ul>\n  <li>DataSourceName: @{pipeline().parameters.DataSourceName}</li>\n  <li>PathDate: @{variables('PathDate')}</li>\n</ul>\n<p>Pipeline Run</p>\n<p>https://app.fabric.microsoft.com/workloads/data-pipeline/monitoring/workspaces/@{pipeline().DataFactory}/pipelines/@{pipeline().PipelineName}/@{pipeline().RunId}?experience=power-bi</p>\n<p><br></p>\n<p><br></p>\n<p><br></p>",
+              "Sensitivity": "",
+              "Importance": "Normal"
+            },
+            "method": "post",
+            "path": "/v2/Mail"
+          }
+        },
+        "name": "NotifyOnFailure",
+        "state": "Inactive",
+        "onInactiveMarkAs": "Succeeded",
+        "dependsOn": [
+          {
+            "activity": "Update Audit Entry on Failure",
+            "dependencyConditions": [
+              "Completed"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Fail",
+        "typeProperties": {
+          "message": {
+            "value": "@{activity('GetWorkspaceName').output.displayName} - @{pipeline().PipelineName} Failure",
+            "type": "Expression"
+          },
+          "errorCode": "400"
+        },
+        "name": "RaiseFailure",
+        "dependsOn": [
+          {
+            "activity": "NotifyOnFailure",
+            "dependencyConditions": [
+              "Completed"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "WebActivity",
+        "typeProperties": {
+          "method": "GET",
+          "relativeUrl": {
+            "value": "/workspaces/@{pipeline().DataFactory}",
+            "type": "Expression"
+          },
+          "headers": {}
+        },
+        "externalReferences": {
+          "connection": "800b1f17-445d-42f2-bd15-59288f354af3"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "GetWorkspaceName",
+        "description": "",
+        "dependsOn": []
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "SqlServerSource",
+            "sqlReaderStoredProcedureName": "[log].[uspUpdateAudit]",
+            "storedProcedureParameters": {
+              "AuditID": {
+                "type": "Int64",
+                "value": {
+                  "value": "@activity('Create Audit Entry').output.firstRow.AuditID",
+                  "type": "Expression"
+                }
+              },
+              "Deletes": {
+                "type": "Int64",
+                "value": null
+              },
+              "EndTime": {
+                "type": "DateTime",
+                "value": {
+                  "value": "@utcNow()",
+                  "type": "Expression"
+                }
+              },
+              "ErrorCode": {
+                "type": "String",
+                "value": "ActionFailed"
+              },
+              "ErrorMessage": {
+                "type": "String",
+                "value": "Inner Activity failed"
+              },
+              "FailureType": {
+                "type": "String",
+                "value": "ActionFailed"
+              },
+              "Inserts": {
+                "type": "Int64",
+                "value": null
+              },
+              "Updates": {
+                "type": "Int64",
+                "value": null
+              }
+            },
+            "partitionOption": "None",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "SqlServerTable",
+            "typeProperties": {
+              "database": {
+                "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                "type": "Expression"
+              }
+            },
+            "schema": [],
+            "externalReferences": {
+              "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Update Audit Entry on Failure",
+        "dependsOn": [
+          {
+            "activity": "If SemanticModelRefresh is activated",
+            "dependencyConditions": [
+              "Skipped",
+              "Failed"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "SqlServerSource",
+            "sqlReaderStoredProcedureName": "[log].[uspUpdateAudit]",
+            "storedProcedureParameters": {
+              "AuditID": {
+                "type": "Int64",
+                "value": {
+                  "value": "@activity('Create Audit Entry').output.firstRow.AuditID",
+                  "type": "Expression"
+                }
+              },
+              "Deletes": {
+                "type": "Int64",
+                "value": null
+              },
+              "EndTime": {
+                "type": "DateTime",
+                "value": {
+                  "value": "@utcNow()",
+                  "type": "Expression"
+                }
+              },
+              "ErrorCode": {
+                "type": "String",
+                "value": null
+              },
+              "ErrorMessage": {
+                "type": "String",
+                "value": null
+              },
+              "FailureType": {
+                "type": "String",
+                "value": null
+              },
+              "Inserts": {
+                "type": "Int64",
+                "value": null
+              },
+              "Updates": {
+                "type": "Int64",
+                "value": null
+              }
+            },
+            "partitionOption": "None",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "SqlServerTable",
+            "typeProperties": {
+              "database": {
+                "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                "type": "Expression"
+              }
+            },
+            "schema": [],
+            "externalReferences": {
+              "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Update Audit Entry",
+        "dependsOn": [
+          {
+            "activity": "If SemanticModelRefresh is activated",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "SqlServerSource",
+            "sqlReaderStoredProcedureName": "[log].[uspInsertAudit]",
+            "storedProcedureParameters": {
+              "ComponentName": {
+                "type": "String",
+                "value": "Main"
+              },
+              "ItemId": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().Pipeline",
+                  "type": "Expression"
+                }
+              },
+              "ItemName": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().PipelineName",
+                  "type": "Expression"
+                }
+              },
+              "ItemType": {
+                "type": "String",
+                "value": "Pipeline"
+              },
+              "MasterRunId": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().RunId",
+                  "type": "Expression"
+                }
+              },
+              "ParentAuditID": {
+                "type": "Int64",
+                "value": null
+              },
+              "ParentRunId": {
+                "type": "String",
+                "value": null
+              },
+              "RunId": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().RunId",
+                  "type": "Expression"
+                }
+              },
+              "Sink": {
+                "type": "String",
+                "value": null
+              },
+              "SinkType": {
+                "type": "String",
+                "value": null
+              },
+              "Source": {
+                "type": "String",
+                "value": null
+              },
+              "SourceObject": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().parameters.DataSourceName",
+                  "type": "Expression"
+                }
+              },
+              "SourceType": {
+                "type": "String",
+                "value": null
+              },
+              "StartParameter": {
+                "type": "String",
+                "value": {
+                  "value": "DataSourceName: @{pipeline().parameters.DataSourceName}, PathDate: @{variables('PathDate')} ",
+                  "type": "Expression"
+                }
+              },
+              "StartTime": {
+                "type": "DateTime",
+                "value": {
+                  "value": "@utcNow()",
+                  "type": "Expression"
+                }
+              },
+              "WorkspaceId": {
+                "type": "String",
+                "value": {
+                  "value": "@pipeline().DataFactory",
+                  "type": "Expression"
+                }
+              },
+              "WorkspaceName": {
+                "type": "String",
+                "value": {
+                  "value": "@activity('GetWorkspaceName').output.displayName",
+                  "type": "Expression"
+                }
+              }
+            },
+            "partitionOption": "None",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "SqlServerTable",
+            "typeProperties": {
+              "database": {
+                "value": "@pipeline().libraryVariables.VL_MDB_Name",
+                "type": "Expression"
+              }
+            },
+            "schema": [],
+            "externalReferences": {
+              "connection": "@pipeline().libraryVariables.VL_MDB_Connection"
+            },
+            "annotations": []
+          },
+          "firstRowOnly": true
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Create Audit Entry",
+        "dependsOn": [
+          {
+            "activity": "GetWorkspaceName",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "IfCondition",
+        "typeProperties": {
+          "expression": {
+            "value": "@pipeline().parameters.IsSource2BronzeActive",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [
+            {
+              "type": "ExecutePipeline",
+              "typeProperties": {
+                "pipeline": {
+                  "referenceName": "1c00c56b-bb79-4bb9-abde-44be1ed84804",
+                  "type": "PipelineReference"
+                },
+                "parameters": {
+                  "PathDate": {
+                    "value": "@variables('PathDate')",
+                    "type": "Expression"
+                  },
+                  "DataSourceName": {
+                    "value": "@pipeline().parameters.DataSourceName",
+                    "type": "Expression"
+                  },
+                  "ParentAuditID": {
+                    "value": "@activity('Create Audit Entry').output.firstRow.AuditID",
+                    "type": "Expression"
+                  },
+                  "ParentPipelineRunId": {
+                    "value": "@pipeline().RunId",
+                    "type": "Expression"
+                  },
+                  "MasterRunId": {
+                    "value": "@pipeline().RunId",
+                    "type": "Expression"
+                  }
+                },
+                "waitOnCompletion": true
+              },
+              "policy": {
+                "secureInput": false
+              },
+              "name": "Invoke 01_PL_CTRL_Source2Bronze",
+              "dependsOn": []
+            }
+          ],
+          "ifFalseActivities": []
+        },
+        "name": "If Source2Bronze is activated",
+        "dependsOn": [
+          {
+            "activity": "Create Audit Entry",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Set PathDate",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "IfCondition",
+        "typeProperties": {
+          "expression": {
+            "value": "@pipeline().parameters.IsBronze2SilverActive",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [
+            {
+              "type": "TridentNotebook",
+              "typeProperties": {
+                "notebookId": "f987a66b-457b-4450-a293-1af4bce4fc09",
+                "workspaceId": "00000000-0000-0000-0000-000000000000",
+                "parameters": {
+                  "data_source": {
+                    "value": {
+                      "value": "@pipeline().parameters.DataSourceName",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "string_date": {
+                    "value": {
+                      "value": "@variables('PathDate')",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "parent_audit_id": {
+                    "value": {
+                      "value": "@activity('Create Audit Entry').output.firstRow.AuditId",
+                      "type": "Expression"
+                    },
+                    "type": "int"
+                  },
+                  "parent_run_id": {
+                    "value": {
+                      "value": "@pipeline().RunId",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "master_run_id": {
+                    "value": {
+                      "value": "@pipeline().RunId",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  }
+                },
+                "sessionTag": "AdventureWorks"
+              },
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureInput": false,
+                "secureOutput": false
+              },
+              "name": "Invoke NB_Bronze2Silver",
+              "dependsOn": []
+            }
+          ],
+          "ifFalseActivities": []
+        },
+        "name": "If Bronze2Silver is activated",
+        "dependsOn": [
+          {
+            "activity": "If Source2Bronze is activated",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "IfCondition",
+        "typeProperties": {
+          "expression": {
+            "value": "@pipeline().parameters.IsSilver2GoldActive",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [
+            {
+              "type": "TridentNotebook",
+              "typeProperties": {
+                "notebookId": "f3c963e8-50ab-4cd7-8cc3-95756e46e97f",
+                "workspaceId": "00000000-0000-0000-0000-000000000000",
+                "parameters": {
+                  "parent_audit_id": {
+                    "value": {
+                      "value": "@activity('Create Audit Entry').output.firstRow.AuditId",
+                      "type": "Expression"
+                    },
+                    "type": "int"
+                  },
+                  "parent_run_id": {
+                    "value": {
+                      "value": "@pipeline().RunId",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "master_run_id": {
+                    "value": {
+                      "value": "@pipeline().RunId",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "data_model_name": {
+                    "value": {
+                      "value": "@pipeline().parameters.DataModelName",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "is_debug_mode": {
+                    "value": false,
+                    "type": "bool"
+                  }
+                },
+                "sessionTag": "AdventureWorks"
+              },
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureInput": false,
+                "secureOutput": false
+              },
+              "name": "Invoke NB_Silver2Gold",
+              "dependsOn": []
+            }
+          ],
+          "ifFalseActivities": []
+        },
+        "name": "If Silver2Gold is activated",
+        "dependsOn": [
+          {
+            "activity": "If Bronze2Silver is activated",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "IfCondition",
+        "typeProperties": {
+          "expression": {
+            "value": "@pipeline().parameters.IsSemanticModelRefreshActive",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [
+            {
+              "type": "PBISemanticModelRefresh",
+              "typeProperties": {
+                "method": "POST",
+                "groupId": "7942ec4f-5a2f-4a63-ae65-9f495c08bf67",
+                "datasetId": "a77d81c9-a07f-47f9-8e19-8b864b5cfb25",
+                "commitMode": "Transactional",
+                "waitOnCompletion": true,
+                "operationType": "SemanticModelRefresh"
+              },
+              "externalReferences": {
+                "connection": "f7f6a9fd-fbf4-48d3-b090-03007dec7199"
+              },
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureInput": false,
+                "secureOutput": false
+              },
+              "name": "Semantic model refresh",
+              "dependsOn": []
+            }
+          ],
+          "ifFalseActivities": []
+        },
+        "name": "If SemanticModelRefresh is activated",
+        "dependsOn": [
+          {
+            "activity": "If Silver2Gold is activated",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "PathDate": {
+        "type": "string"
+      },
+      "DataSourceName": {
+        "type": "string",
+        "defaultValue": "AdventureWorks"
+      },
+      "DataModelName": {
+        "type": "string",
+        "defaultValue": "Sales"
+      },
+      "IsSource2BronzeActive": {
+        "type": "bool",
+        "defaultValue": true
+      },
+      "IsBronze2SilverActive": {
+        "type": "bool",
+        "defaultValue": true
+      },
+      "IsSilver2GoldActive": {
+        "type": "bool",
+        "defaultValue": true
+      },
+      "IsSemanticModelRefreshActive": {
+        "type": "bool",
+        "defaultValue": true
+      }
+    },
+    "libraryVariables": {
+      "VL_MDB_Name": {
+        "type": "String",
+        "variableName": "MetadataDatabaseName",
+        "libraryName": "Variables_Environment_Config"
+      },
+      "VL_MDB_Connection": {
+        "type": "String",
+        "variableName": "MetadataDatabaseConnection",
+        "libraryName": "Variables_Environment_Config"
+      }
+    },
+    "variables": {
+      "PathDate": {
+        "type": "String"
+      }
+    }
+  }
+}

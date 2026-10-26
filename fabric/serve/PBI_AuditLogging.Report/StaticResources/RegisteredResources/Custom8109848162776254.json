@@ -1,0 +1,32 @@
+{
+  "name": "Custom",
+  "textClasses": {
+    "callout": {
+      "fontFace": "'Segoe UI', wf_segoe-ui_normal, helvetica, arial, sans-serif"
+    },
+    "title": {
+      "fontFace": "'Segoe UI', wf_segoe-ui_normal, helvetica, arial, sans-serif"
+    }
+  },
+  "dataColors": [
+    "#004D95",
+    "#484848",
+    "#959595",
+    "#019025",
+    "#0B805A",
+    "#001E8A",
+    "#2596BE",
+    "#077564"
+  ],
+  "visualStyles": {
+    "*": {
+      "*": {
+        "outspacePane": [
+          {
+            "transparency": 1
+          }
+        ]
+      }
+    }
+  }
+}

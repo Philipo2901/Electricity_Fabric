@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "PBI_SalesDataset"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "7799b38a-4ae5-48b5-9bfe-969cc67ceb2f"
+  }
+}
